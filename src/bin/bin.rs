@@ -1,8 +1,4 @@
 use clap::{App, Arg, ArgMatches};
-use lib::{
-    derive_child_seeds, derive_master_xpub, derive_xpubs_from_seed, extend_seed, truncate_seed,
-    xor_seeds,
-};
 
 const CHILD_SUB: &str = "child";
 const EXTEND_SUB: &str = "extend";
@@ -11,9 +7,14 @@ const XOR_SUB: &str = "xor";
 const XPRV_SUB: &str = "xprv";
 const XPUB_SUB: &str = "xpub";
 
+const SEED_ARG: &str = "seed";
+const INDEX_ARG: &str = "index";
+const NUMBER_ARG: &str = "number";
+const WORDS_ARG: &str = "words";
+const MASTER_ARG: &str = "master";
+
 // TODO: Docs
 // TODO: Readme.md
-// TODO: xprv
 
 fn main() -> Result<(), String> {
     let matches = App::new("seed-utils")
@@ -24,32 +25,32 @@ fn main() -> Result<(), String> {
             App::new(CHILD_SUB)
                 .about("Derives a child seed from a seed.")
                 .arg(
-                    Arg::with_name("seed")
+                    Arg::with_name(SEED_ARG)
                         .help("Seed to derive.")
                         .index(1)
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("index")
+                    Arg::with_name(INDEX_ARG)
                         .help("Index to derive at.")
                         .short("i")
-                        .long("index")
+                        .long(INDEX_ARG)
                         .takes_value(true)
                         .default_value("0"),
                 )
                 .arg(
-                    Arg::with_name("number")
+                    Arg::with_name(NUMBER_ARG)
                         .help("Number of seeds to derive, starting from index.")
                         .short("n")
-                        .long("number")
+                        .long(NUMBER_ARG)
                         .takes_value(true)
                         .default_value("1"),
                 )
                 .arg(
-                    Arg::with_name("word count")
+                    Arg::with_name(WORDS_ARG)
                         .help("Number of words of the derived seed.")
                         .short("w")
-                        .long("words")
+                        .long(WORDS_ARG)
                         .takes_value(true)
                         .possible_values(&["12", "18", "24"])
                         .default_value("24"),
@@ -59,16 +60,16 @@ fn main() -> Result<(), String> {
             App::new(EXTEND_SUB)
                 .about("Creates a new seed by extending the entropy of a 12 or 18 word seed")
                 .arg(
-                    Arg::with_name("seed")
+                    Arg::with_name(SEED_ARG)
                         .help("Seed to extend.")
                         .index(1)
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("word count")
+                    Arg::with_name(WORDS_ARG)
                         .help("Number of words of the extended seed.")
                         .short("w")
-                        .long("words")
+                        .long(WORDS_ARG)
                         .takes_value(true)
                         .possible_values(&["18", "24"])
                         .default_value("24"),
@@ -79,20 +80,29 @@ fn main() -> Result<(), String> {
                 .about("Creates new seeds by shortening the entropy of another. 
                 The new seed begins with the same words as the longer one, only the last word is different to satisfy its checksum.")
                 .arg(
-                    Arg::with_name("seed")
+                    Arg::with_name(SEED_ARG)
                         .help("Seed to truncate.")
                         .index(1)
                         .required(true),
                 )
+                .arg(
+                    Arg::with_name(WORDS_ARG)
+                        .help("Number of words of the truncated seed.")
+                        .short("w")
+                        .long(WORDS_ARG)
+                        .takes_value(true)
+                        .possible_values(&["12", "18"])
+                        .default_value("12"),
+                ),
         )
         .subcommand(
             App::new(XOR_SUB)
             .about("Does a XOR of multiple seeds.")
             .arg(
-                Arg::with_name("seed")
+                Arg::with_name(SEED_ARG)
                     .help("Seeds to xor.")
                     .short("s")
-                    .long("seed")
+                    .long(SEED_ARG)
                     .multiple(true)
                     .min_values(2)
                     .required(true),
@@ -102,31 +112,31 @@ fn main() -> Result<(), String> {
             App::new(XPUB_SUB)
                 .about("Derives account xpubs from a seed.")
                 .arg(
-                    Arg::with_name("seed")
+                    Arg::with_name(SEED_ARG)
                         .help("Seed to derive xpubs from.")
                         .index(1)
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("master")
+                    Arg::with_name(MASTER_ARG)
                         .help("Derive master xpub.")
-                        .long("master")
+                        .long(MASTER_ARG)
                         .takes_value(false)
-                        .conflicts_with_all(&["index", "number"]),
+                        .conflicts_with_all(&[INDEX_ARG, NUMBER_ARG]),
                 )
                 .arg(
-                    Arg::with_name("index")
+                    Arg::with_name(INDEX_ARG)
                         .help("Index to derive xpub at.")
                         .short("i")
-                        .long("index")
+                        .long(INDEX_ARG)
                         .takes_value(true)
                         .default_value("0"),
                 )
                 .arg(
-                    Arg::with_name("number")
+                    Arg::with_name(NUMBER_ARG)
                         .help("Number of xpubs to derive, starting from index.")
                         .short("n")
-                        .long("number")
+                        .long(NUMBER_ARG)
                         .takes_value(true)
                         .default_value("1"),
                 ),
@@ -135,31 +145,31 @@ fn main() -> Result<(), String> {
             App::new(XPRV_SUB)
                 .about("Derives account xprvs from a seed.")
                 .arg(
-                    Arg::with_name("seed")
+                    Arg::with_name(SEED_ARG)
                         .help("Seed to derive xprvs from.")
                         .index(1)
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("master")
+                    Arg::with_name(MASTER_ARG)
                         .help("Derive master xprv.")
-                        .long("master")
+                        .long(MASTER_ARG)
                         .takes_value(false)
-                        .conflicts_with_all(&["index", "number"]),
+                        .conflicts_with_all(&[INDEX_ARG, NUMBER_ARG]),
                 )
                 .arg(
-                    Arg::with_name("index")
+                    Arg::with_name(INDEX_ARG)
                         .help("Index to derive xprv at.")
                         .short("i")
-                        .long("index")
+                        .long(INDEX_ARG)
                         .takes_value(true)
                         .default_value("0"),
                 )
                 .arg(
-                    Arg::with_name("number")
+                    Arg::with_name(NUMBER_ARG)
                         .help("Number of xprvs to derive, starting from index.")
                         .short("n")
-                        .long("number")
+                        .long(NUMBER_ARG)
                         .takes_value(true)
                         .default_value("1"),
                 ),
@@ -186,42 +196,44 @@ fn process_matches(matches: &ArgMatches) -> Result<(), String> {
 
 fn index_value(matches: &ArgMatches) -> Result<u32, String> {
     matches
-        .value_of("index")
-        .ok_or("index not set".to_string())?
+        .value_of(INDEX_ARG)
+        .ok_or_else(|| "index not set".to_string())?
         .parse::<u32>()
         .map_err(|_| "index can't be higher than 2^32".to_string())
 }
 
 fn number_value(matches: &ArgMatches) -> Result<u8, String> {
     matches
-        .value_of("number")
-        .ok_or("number not set".to_string())?
+        .value_of(NUMBER_ARG)
+        .ok_or_else(|| "number not set".to_string())?
         .parse::<u8>()
         .map_err(|_| "number can't be higher than 255".to_string())
 }
 
 fn seed_value<'a>(matches: &'a ArgMatches) -> Result<&'a str, String> {
-    matches.value_of("seed").ok_or("seed not set".to_string())
+    matches
+        .value_of(SEED_ARG)
+        .ok_or_else(|| "seed not set".to_string())
 }
 
 fn seed_values<'a>(matches: &'a ArgMatches) -> Result<Vec<&'a str>, String> {
     Ok(matches
-        .values_of("seed")
-        .ok_or("seeds not set".to_string())?
+        .values_of(SEED_ARG)
+        .ok_or_else(|| "seeds not set".to_string())?
         .into_iter()
         .collect())
 }
 
 fn word_count_value(matches: &ArgMatches) -> Result<u8, String> {
     matches
-        .value_of("word count")
+        .value_of(WORDS_ARG)
         .ok_or("word count not set")?
         .parse::<u8>()
         .map_err(|_| "word count can't be higher than 24".to_string())
 }
 
 fn is_master(matches: &ArgMatches) -> bool {
-    matches.is_present("master")
+    matches.is_present(MASTER_ARG)
 }
 
 fn process_child_matches(matches: &ArgMatches) -> Result<(), String> {
@@ -231,7 +243,7 @@ fn process_child_matches(matches: &ArgMatches) -> Result<(), String> {
     let number = number_value(matches)?;
     let word_count = word_count_value(matches)?;
 
-    let derived = derive_child_seeds(seed_str, (index, index + number as u32), word_count)?;
+    let derived = lib::derive_child_seeds(seed_str, (index, index + number as u32), word_count)?;
 
     for (i, mnemonic) in derived {
         println!("Derived seed at {}: {}", i, mnemonic);
@@ -245,28 +257,26 @@ fn process_extend_matches(matches: &ArgMatches) -> Result<(), String> {
     let seed_str = seed_value(matches)?;
     let word_count = word_count_value(matches)?;
 
-    let extended_seed = extend_seed(seed_str, word_count)?;
+    let extended_seed = lib::extend_seed(seed_str, word_count)?;
     println!("Extended seed: {}", extended_seed);
 
     Ok(())
 }
 
 fn process_truncate_matches(matches: &ArgMatches) -> Result<(), String> {
-    // Return early because seed is required
+    // Return early because seed is required and word count has a default
     let seed_str = seed_value(matches)?;
+    let word_count = word_count_value(matches)?;
 
-    let truncated_seeds = truncate_seed(&seed_str)?;
+    let truncated_seed = lib::truncate_seed(&seed_str, word_count)?;
 
-    for (i, seed) in truncated_seeds {
-        println!("Truncated {} word seed: {}", i, seed);
-    }
-
+    println!("Truncated seed: {}", truncated_seed);
     Ok(())
 }
 
 fn process_xor_matches(matches: &ArgMatches) -> Result<(), String> {
     let seeds = seed_values(matches)?;
-    let xor_seed = xor_seeds(&seeds)?;
+    let xor_seed = lib::xor_seeds(&seeds)?;
 
     println!("XORed seed: {}", xor_seed);
 
@@ -277,7 +287,7 @@ fn process_xpub_matches(matches: &ArgMatches) -> Result<(), String> {
     // Return early because every field is either required or has a default value
     let seed_str = seed_value(matches)?;
     if is_master(matches) {
-        let master = derive_master_xpub(seed_str)?;
+        let master = lib::derive_master_xpub(seed_str)?;
         println!("Master xpub: {}", master);
 
         return Ok(());
@@ -285,7 +295,7 @@ fn process_xpub_matches(matches: &ArgMatches) -> Result<(), String> {
     let index = index_value(matches)?;
     let number = number_value(matches)?;
 
-    let derived = derive_xpubs_from_seed(seed_str, (index, index + number as u32))?;
+    let derived = lib::derive_xpubs_from_seed(seed_str, (index, index + number as u32))?;
 
     for (i, xpub) in derived {
         println!("Derived xpub at {}: {}", i, xpub);
@@ -295,5 +305,22 @@ fn process_xpub_matches(matches: &ArgMatches) -> Result<(), String> {
 }
 
 fn process_xprv_matches(matches: &ArgMatches) -> Result<(), String> {
-    todo!();
+    // Return early because every field is either required or has a default value
+    let seed_str = seed_value(matches)?;
+    if is_master(matches) {
+        let master = lib::derive_master_xprv(seed_str)?;
+        println!("Master xprv: {}", master);
+
+        return Ok(());
+    }
+    let index = index_value(matches)?;
+    let number = number_value(matches)?;
+
+    let derived = lib::derive_xprvs_from_seed(seed_str, (index, index + number as u32))?;
+
+    for (i, xpub) in derived {
+        println!("Derived xprv at {}: {}", i, xpub);
+    }
+
+    Ok(())
 }
