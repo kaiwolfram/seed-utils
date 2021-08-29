@@ -1,4 +1,9 @@
+use std::str::FromStr;
+
+use bip85::bitcoin::util::bip32::{ExtendedPrivKey, ExtendedPubKey};
 use clap::{App, Arg, ArgMatches};
+use seed_utils::WordCount;
+use xyzpub::Version;
 
 const CHILD_SUB: &str = "child";
 const EXTEND_SUB: &str = "extend";
@@ -11,10 +16,8 @@ const SEED_ARG: &str = "seed";
 const INDEX_ARG: &str = "index";
 const NUMBER_ARG: &str = "number";
 const WORDS_ARG: &str = "words";
-const MASTER_ARG: &str = "master";
-
-// TODO: Docs
-// TODO: Readme.md
+const ROOT_ARG: &str = "root";
+const TYPE_ARG: &str = "type";
 
 fn main() -> Result<(), String> {
     let matches = App::new("seed-utils")
@@ -118,9 +121,9 @@ fn main() -> Result<(), String> {
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name(MASTER_ARG)
-                        .help("Derive master xpub.")
-                        .long(MASTER_ARG)
+                    Arg::with_name(ROOT_ARG)
+                        .help("Derive the bip32 root xpub.")
+                        .long(ROOT_ARG)
                         .takes_value(false)
                         .conflicts_with_all(&[INDEX_ARG, NUMBER_ARG]),
                 )
@@ -139,6 +142,15 @@ fn main() -> Result<(), String> {
                         .long(NUMBER_ARG)
                         .takes_value(true)
                         .default_value("1"),
+                )
+                .arg(
+                    Arg::with_name(TYPE_ARG)
+                        .help("Type of xpub to return. Either xpub, ypub or zpub.")
+                        .short("t")
+                        .long(TYPE_ARG)
+                        .takes_value(true)
+                        .possible_values(&["xpub", "ypub", "zpub"])
+                        .default_value("zpub"),
                 ),
         )
         .subcommand(
@@ -151,9 +163,9 @@ fn main() -> Result<(), String> {
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name(MASTER_ARG)
-                        .help("Derive master xprv.")
-                        .long(MASTER_ARG)
+                    Arg::with_name(ROOT_ARG)
+                        .help("Derive the bip32 root xprv.")
+                        .long(ROOT_ARG)
                         .takes_value(false)
                         .conflicts_with_all(&[INDEX_ARG, NUMBER_ARG]),
                 )
@@ -172,6 +184,15 @@ fn main() -> Result<(), String> {
                         .long(NUMBER_ARG)
                         .takes_value(true)
                         .default_value("1"),
+                )
+                .arg(
+                    Arg::with_name(TYPE_ARG)
+                        .help("Type of xprv to return. Either xprv, yprv or zprv.")
+                        .short("t")
+                        .long(TYPE_ARG)
+                        .takes_value(true)
+                        .possible_values(&["xprv", "yprv", "zprv"])
+                        .default_value("zprv"),
                 ),
         )
         .get_matches();
@@ -194,6 +215,7 @@ fn process_matches(matches: &ArgMatches) -> Result<(), String> {
     Ok(())
 }
 
+/// Returns the `index` flag's value.
 fn index_value(matches: &ArgMatches) -> Result<u32, String> {
     matches
         .value_of(INDEX_ARG)
@@ -202,6 +224,7 @@ fn index_value(matches: &ArgMatches) -> Result<u32, String> {
         .map_err(|_| "index can't be higher than 2^32".to_string())
 }
 
+/// Returns the `number` flag's value.
 fn number_value(matches: &ArgMatches) -> Result<u8, String> {
     matches
         .value_of(NUMBER_ARG)
@@ -210,12 +233,14 @@ fn number_value(matches: &ArgMatches) -> Result<u8, String> {
         .map_err(|_| "number can't be higher than 255".to_string())
 }
 
+/// Returns the `seed` flag's value.
 fn seed_value<'a>(matches: &'a ArgMatches) -> Result<&'a str, String> {
     matches
         .value_of(SEED_ARG)
         .ok_or_else(|| "seed not set".to_string())
 }
 
+/// Returns the `seed` flag's values as a list of seeds.
 fn seed_values<'a>(matches: &'a ArgMatches) -> Result<Vec<&'a str>, String> {
     Ok(matches
         .values_of(SEED_ARG)
@@ -224,18 +249,27 @@ fn seed_values<'a>(matches: &'a ArgMatches) -> Result<Vec<&'a str>, String> {
         .collect())
 }
 
-fn word_count_value(matches: &ArgMatches) -> Result<u8, String> {
-    matches
-        .value_of(WORDS_ARG)
-        .ok_or("word count not set")?
-        .parse::<u8>()
-        .map_err(|_| "word count can't be higher than 24".to_string())
+/// Returns the `words` flag's value.
+fn word_count_value(matches: &ArgMatches) -> Result<WordCount, String> {
+    let count = matches.value_of(WORDS_ARG).ok_or("word count not set")?;
+
+    WordCount::from_str(count)
 }
 
-fn is_master(matches: &ArgMatches) -> bool {
-    matches.is_present(MASTER_ARG)
+/// Returns the `type` flag's value.
+fn type_value<'a>(matches: &'a ArgMatches) -> Result<Version, String> {
+    let version = matches
+        .value_of(TYPE_ARG)
+        .ok_or("type not set".to_string())?;
+    Version::from_str(version).map_err(|_| format!("Version prefix [{}] is not supported", version))
 }
 
+/// Returns the `root` flag.
+fn is_root(matches: &ArgMatches) -> bool {
+    matches.is_present(ROOT_ARG)
+}
+
+/// Processes the `child` subcommand.
 fn process_child_matches(matches: &ArgMatches) -> Result<(), String> {
     // Return early because every field is either required or has a default value
     let seed_str = seed_value(matches)?;
@@ -243,7 +277,8 @@ fn process_child_matches(matches: &ArgMatches) -> Result<(), String> {
     let number = number_value(matches)?;
     let word_count = word_count_value(matches)?;
 
-    let derived = lib::derive_child_seeds(seed_str, (index, index + number as u32), word_count)?;
+    let derived =
+        seed_utils::derive_child_seeds(seed_str, (index, index + number as u32), word_count)?;
 
     for (i, mnemonic) in derived {
         println!("Derived seed at {}: {}", i, mnemonic);
@@ -252,75 +287,118 @@ fn process_child_matches(matches: &ArgMatches) -> Result<(), String> {
     Ok(())
 }
 
+/// Processes the `extend` subcommand.
 fn process_extend_matches(matches: &ArgMatches) -> Result<(), String> {
     // Return early because every field is either required or has a default value
     let seed_str = seed_value(matches)?;
     let word_count = word_count_value(matches)?;
 
-    let extended_seed = lib::extend_seed(seed_str, word_count)?;
+    let extended_seed = seed_utils::extend_seed(seed_str, word_count)?;
     println!("Extended seed: {}", extended_seed);
 
     Ok(())
 }
 
+/// Processes the `truncate` subcommand.
 fn process_truncate_matches(matches: &ArgMatches) -> Result<(), String> {
     // Return early because seed is required and word count has a default
     let seed_str = seed_value(matches)?;
     let word_count = word_count_value(matches)?;
 
-    let truncated_seed = lib::truncate_seed(&seed_str, word_count)?;
-
+    let truncated_seed = seed_utils::truncate_seed(&seed_str, word_count)?;
     println!("Truncated seed: {}", truncated_seed);
+
     Ok(())
 }
 
+/// Processes the `xor` subcommand.
 fn process_xor_matches(matches: &ArgMatches) -> Result<(), String> {
     let seeds = seed_values(matches)?;
-    let xor_seed = lib::xor_seeds(&seeds)?;
 
-    println!("XORed seed: {}", xor_seed);
+    if let Some(xor) = seed_utils::xor_seeds(&seeds)? {
+        println!("XORed seed: {}", xor);
+    } else {
+        println!("No seeds to XOR");
+    }
 
     Ok(())
 }
 
+/// Processes the `xpub` subcommand.
 fn process_xpub_matches(matches: &ArgMatches) -> Result<(), String> {
     // Return early because every field is either required or has a default value
     let seed_str = seed_value(matches)?;
-    if is_master(matches) {
-        let master = lib::derive_master_xpub(seed_str)?;
-        println!("Master xpub: {}", master);
+    let version = type_value(matches)?;
+
+    // Print root key if flag is present
+    if is_root(matches) {
+        let master = seed_utils::derive_root_xpub(seed_str)?.versioned_string(&version)?;
+        println!("Root xpub: {}", master);
 
         return Ok(());
     }
+
+    // Derive extended public keys
     let index = index_value(matches)?;
     let number = number_value(matches)?;
-
-    let derived = lib::derive_xpubs_from_seed(seed_str, (index, index + number as u32))?;
-
+    let derived = seed_utils::derive_xpubs_from_seed(seed_str, (index, index + number as u32))?;
     for (i, xpub) in derived {
-        println!("Derived xpub at {}: {}", i, xpub);
+        println!(
+            "Derived xpub at {}: {}",
+            i,
+            xpub.versioned_string(&version)?
+        );
     }
 
     Ok(())
 }
 
+/// Processes the `xprv` subcommand.
 fn process_xprv_matches(matches: &ArgMatches) -> Result<(), String> {
     // Return early because every field is either required or has a default value
     let seed_str = seed_value(matches)?;
-    if is_master(matches) {
-        let master = lib::derive_master_xprv(seed_str)?;
-        println!("Master xprv: {}", master);
+    let version = type_value(matches)?;
+
+    // Print root key if flag is present
+    if is_root(matches) {
+        let master = seed_utils::derive_root_xprv(seed_str)?.versioned_string(&version)?;
+        println!("Root xprv: {}", master);
 
         return Ok(());
     }
+
+    // Derive extended private keys
     let index = index_value(matches)?;
     let number = number_value(matches)?;
-
-    let derived = lib::derive_xprvs_from_seed(seed_str, (index, index + number as u32))?;
-
+    let derived = seed_utils::derive_xprvs_from_seed(seed_str, (index, index + number as u32))?;
     for (i, xpub) in derived {
-        println!("Derived xprv at {}: {}", i, xpub);
+        println!(
+            "Derived xprv at {}: {}",
+            i,
+            xpub.versioned_string(&version)?
+        );
     }
 
     Ok(())
+}
+
+/// Trait for returning a versioned string of a Bitcoin address.
+trait VersionedString {
+    /// Returns a versioned string or `Err` if conversion fails.
+    /// Failure may occur when `self`'s string value is not a valid base58 check encoded Bitcoin address.
+    fn versioned_string(&self, version: &Version) -> Result<String, String>;
+}
+
+impl VersionedString for ExtendedPubKey {
+    fn versioned_string(&self, version: &Version) -> Result<String, String> {
+        xyzpub::convert_version(self.to_string(), version)
+            .map_err(|_| "Failed to convert extended public key to requested version".to_string())
+    }
+}
+
+impl VersionedString for ExtendedPrivKey {
+    fn versioned_string(&self, version: &Version) -> Result<String, String> {
+        xyzpub::convert_version(self.to_string(), version)
+            .map_err(|_| "Failed to convert extended private key to requested version".to_string())
+    }
 }
