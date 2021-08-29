@@ -238,9 +238,9 @@ dependencies = [
 
 [[package]]
 name = "seed-xor"
-version = "1.0.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9c33b7a6995bb155dcaec3a7f5c107ab5fcc3c46464bfaf9f3557016d18cb4f"
+checksum = "ec999a1de465a4d35ad40a75b55244f8153dc753a7e226161982ecddb1af0104"
 dependencies = [
  "bip39",
 ]

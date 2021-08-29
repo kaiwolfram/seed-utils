@@ -278,7 +278,7 @@ fn process_child_matches(matches: &ArgMatches) -> Result<(), String> {
     let word_count = word_count_value(matches)?;
 
     let derived =
-        seed_utils::derive_child_seeds(seed_str, (index, index + number as u32), word_count)?;
+        seed_utils::derive_child_seeds(seed_str, (index, index + number as u32), &word_count)?;
 
     for (i, mnemonic) in derived {
         println!("Derived seed at {}: {}", i, mnemonic);
@@ -293,7 +293,7 @@ fn process_extend_matches(matches: &ArgMatches) -> Result<(), String> {
     let seed_str = seed_value(matches)?;
     let word_count = word_count_value(matches)?;
 
-    let extended_seed = seed_utils::extend_seed(seed_str, word_count)?;
+    let extended_seed = seed_utils::extend_seed(seed_str, &word_count)?;
     println!("Extended seed: {}", extended_seed);
 
     Ok(())
@@ -305,7 +305,7 @@ fn process_truncate_matches(matches: &ArgMatches) -> Result<(), String> {
     let seed_str = seed_value(matches)?;
     let word_count = word_count_value(matches)?;
 
-    let truncated_seed = seed_utils::truncate_seed(&seed_str, word_count)?;
+    let truncated_seed = seed_utils::truncate_seed(&seed_str, &word_count)?;
     println!("Truncated seed: {}", truncated_seed);
 
     Ok(())
@@ -341,7 +341,8 @@ fn process_xpub_matches(matches: &ArgMatches) -> Result<(), String> {
     // Derive extended public keys
     let index = index_value(matches)?;
     let number = number_value(matches)?;
-    let derived = seed_utils::derive_xpubs_from_seed(seed_str, (index, index + number as u32))?;
+    let derived =
+        seed_utils::derive_xpubs_from_seed(seed_str, (index, index + number as u32), &version)?;
     for (i, xpub) in derived {
         println!(
             "Derived xpub at {}: {}",
@@ -370,7 +371,8 @@ fn process_xprv_matches(matches: &ArgMatches) -> Result<(), String> {
     // Derive extended private keys
     let index = index_value(matches)?;
     let number = number_value(matches)?;
-    let derived = seed_utils::derive_xprvs_from_seed(seed_str, (index, index + number as u32))?;
+    let derived =
+        seed_utils::derive_xprvs_from_seed(seed_str, (index, index + number as u32), &version)?;
     for (i, xpub) in derived {
         println!(
             "Derived xprv at {}: {}",
