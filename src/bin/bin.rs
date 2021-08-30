@@ -22,20 +22,19 @@ const TYPE_ARG: &str = "type";
 fn main() -> Result<(), String> {
     let matches = App::new("seed-utils")
         .version("0.1.0")
-        .about("CLI seed utilities")
-        .author("kaiwitt")
+        .about("CLI seed utilities.")
         .subcommand(
             App::new(CHILD_SUB)
                 .about("Derives a child seed from a seed.")
                 .arg(
                     Arg::with_name(SEED_ARG)
-                        .help("Seed to derive.")
+                        .help("Seed to derive")
                         .index(1)
                         .required(true),
                 )
                 .arg(
                     Arg::with_name(INDEX_ARG)
-                        .help("Index to derive at.")
+                        .help("Index to derive at")
                         .short("i")
                         .long(INDEX_ARG)
                         .takes_value(true)
@@ -43,7 +42,7 @@ fn main() -> Result<(), String> {
                 )
                 .arg(
                     Arg::with_name(NUMBER_ARG)
-                        .help("Number of seeds to derive, starting from index.")
+                        .help("Number of seeds to derive, starting from index")
                         .short("n")
                         .long(NUMBER_ARG)
                         .takes_value(true)
@@ -51,7 +50,7 @@ fn main() -> Result<(), String> {
                 )
                 .arg(
                     Arg::with_name(WORDS_ARG)
-                        .help("Number of words of the derived seed.")
+                        .help("Number of words of the derived seed")
                         .short("w")
                         .long(WORDS_ARG)
                         .takes_value(true)
@@ -61,16 +60,16 @@ fn main() -> Result<(), String> {
         )
         .subcommand(
             App::new(EXTEND_SUB)
-                .about("Creates a new seed by extending the entropy of a 12 or 18 word seed")
+                .about("Creates a new seed by extending the entropy of a 12 or 18 word seed.")
                 .arg(
                     Arg::with_name(SEED_ARG)
-                        .help("Seed to extend.")
+                        .help("Seed to extend")
                         .index(1)
                         .required(true),
                 )
                 .arg(
                     Arg::with_name(WORDS_ARG)
-                        .help("Number of words of the extended seed.")
+                        .help("Number of words of the extended seed")
                         .short("w")
                         .long(WORDS_ARG)
                         .takes_value(true)
@@ -84,13 +83,13 @@ fn main() -> Result<(), String> {
                 The new seed begins with the same words as the longer one, only the last word is different to satisfy its checksum.")
                 .arg(
                     Arg::with_name(SEED_ARG)
-                        .help("Seed to truncate.")
+                        .help("Seed to truncate")
                         .index(1)
                         .required(true),
                 )
                 .arg(
                     Arg::with_name(WORDS_ARG)
-                        .help("Number of words of the truncated seed.")
+                        .help("Number of words of the truncated seed")
                         .short("w")
                         .long(WORDS_ARG)
                         .takes_value(true)
@@ -103,9 +102,7 @@ fn main() -> Result<(), String> {
             .about("Does a XOR of multiple seeds.")
             .arg(
                 Arg::with_name(SEED_ARG)
-                    .help("Seeds to xor.")
-                    .short("s")
-                    .long(SEED_ARG)
+                    .help("Seeds to xor")
                     .multiple(true)
                     .min_values(2)
                     .required(true),
@@ -113,23 +110,24 @@ fn main() -> Result<(), String> {
         )
         .subcommand(
             App::new(XPUB_SUB)
-                .about("Derives account xpubs from a seed.")
+                .about("Derives account or root xpubs from a seed.")
                 .arg(
                     Arg::with_name(SEED_ARG)
-                        .help("Seed to derive xpubs from.")
+                        .help("Seed to derive xpubs from")
                         .index(1)
                         .required(true),
                 )
                 .arg(
                     Arg::with_name(ROOT_ARG)
-                        .help("Derive the bip32 root xpub.")
+                        .help("Derives xpub at bip32 root instead of account level")
                         .long(ROOT_ARG)
+                        .short("r")
                         .takes_value(false)
                         .conflicts_with_all(&[INDEX_ARG, NUMBER_ARG]),
                 )
                 .arg(
                     Arg::with_name(INDEX_ARG)
-                        .help("Index to derive xpub at.")
+                        .help("Index to derive xpub at")
                         .short("i")
                         .long(INDEX_ARG)
                         .takes_value(true)
@@ -137,7 +135,7 @@ fn main() -> Result<(), String> {
                 )
                 .arg(
                     Arg::with_name(NUMBER_ARG)
-                        .help("Number of xpubs to derive, starting from index.")
+                        .help("Number of xpubs to derive, starting from index")
                         .short("n")
                         .long(NUMBER_ARG)
                         .takes_value(true)
@@ -145,7 +143,7 @@ fn main() -> Result<(), String> {
                 )
                 .arg(
                     Arg::with_name(TYPE_ARG)
-                        .help("Type of xpub to return. Either xpub, ypub or zpub.")
+                        .help("Type of xpub to return")
                         .short("t")
                         .long(TYPE_ARG)
                         .takes_value(true)
@@ -155,23 +153,24 @@ fn main() -> Result<(), String> {
         )
         .subcommand(
             App::new(XPRV_SUB)
-                .about("Derives account xprvs from a seed.")
+                .about("Derives account or root xprvs from a seed.")
                 .arg(
                     Arg::with_name(SEED_ARG)
-                        .help("Seed to derive xprvs from.")
+                        .help("Seed to derive xprvs from")
                         .index(1)
                         .required(true),
                 )
                 .arg(
                     Arg::with_name(ROOT_ARG)
-                        .help("Derive the bip32 root xprv.")
+                        .help("Derives xprv at bip32 root instead of account level")
                         .long(ROOT_ARG)
+                        .short("r")
                         .takes_value(false)
                         .conflicts_with_all(&[INDEX_ARG, NUMBER_ARG]),
                 )
                 .arg(
                     Arg::with_name(INDEX_ARG)
-                        .help("Index to derive xprv at.")
+                        .help("Index to derive xprv at")
                         .short("i")
                         .long(INDEX_ARG)
                         .takes_value(true)
@@ -179,7 +178,7 @@ fn main() -> Result<(), String> {
                 )
                 .arg(
                     Arg::with_name(NUMBER_ARG)
-                        .help("Number of xprvs to derive, starting from index.")
+                        .help("Number of xprvs to derive, starting from index")
                         .short("n")
                         .long(NUMBER_ARG)
                         .takes_value(true)
@@ -187,7 +186,7 @@ fn main() -> Result<(), String> {
                 )
                 .arg(
                     Arg::with_name(TYPE_ARG)
-                        .help("Type of xprv to return. Either xprv, yprv or zprv.")
+                        .help("Type of xprv to return")
                         .short("t")
                         .long(TYPE_ARG)
                         .takes_value(true)
@@ -208,8 +207,8 @@ fn process_matches(matches: &ArgMatches) -> Result<(), String> {
         Some(XOR_SUB) => process_xor_matches(matches)?,
         Some(XPUB_SUB) => process_xpub_matches(matches)?,
         Some(XPRV_SUB) => process_xprv_matches(matches)?,
-        Some(unknown) => println!("Subcommand [{}] does not exist", unknown),
-        None => println!("No subcommand was used"),
+        Some(unknown) => return Err(format!("Subcommand [{}] does not exist", unknown)),
+        None => return Err("No subcommand was used. Try using --help for guidance.".to_string()),
     }
 
     Ok(())

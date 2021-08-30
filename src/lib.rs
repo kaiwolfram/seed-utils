@@ -1,3 +1,14 @@
+//! # seed-utils
+//!
+//! **Note:** The word `seed` is interchangeably used for bip39 mnemonics.
+//!
+//! - Derive bip85 child seeds
+//! - Derive bip32 root xpubs and xprvs from seeds
+//! - Derive account xpubs and xprvs
+//! - XOR seeds
+//! - Truncate (reduce entropy to keep first n words of a seed)
+//! - Extend (extend entropy to add words to a seed)
+//!
 use std::str::FromStr;
 
 use bip85::bip39::{self, Mnemonic};
@@ -80,8 +91,11 @@ impl From<bip85::Error> for Error {
 /// Valid number of words in a mnemonic.
 #[derive(Debug, PartialEq, Eq)]
 pub enum WordCount {
+    /// 12 Words
     Words12,
+    /// 18 Words
     Words18,
+    /// 24 Words
     Words24,
 }
 
@@ -109,8 +123,8 @@ impl FromStr for WordCount {
     }
 }
 
-/// Derives child seeds of `seed` within an index range of `[start, end)`. Each seed's word count will be exactly `word_count`.
-/// Returned list of tuples contains the derived seeds and their indexes.
+/// Derives child seeds of `seed` with an index range of `[start, end)`. Each seed's word count will be exactly `word_count`.
+/// Returns list of tuples containing the derived seeds and their indexes.
 pub fn derive_child_seeds<S>(
     seed: S,
     (start, mut end): (u32, u32),
@@ -170,7 +184,7 @@ pub fn truncate_seed<S>(seed: S, word_count: &WordCount) -> Result<Mnemonic, Err
 where
     S: AsRef<str>,
 {
-    // Return early if seed has already the desired length
+    // Return early if seed is shorter than desired length
     let parsed_seed = parse_seed(seed)?;
     if parsed_seed.word_count() < word_count.count() as usize {
         return Err(Error::WordCountTooLow);
@@ -187,7 +201,7 @@ where
     Ok(Mnemonic::from_entropy(&entropy)?)
 }
 
-/// XORs multiple seeds and returns the resulting seed or `None` if seeds are empty.
+/// XORs multiple seeds and returns the resulting seed or `None` if `seeds` is empty.
 /// Can fail if a seed is not a valid [bip39::Mnemonic].
 pub fn xor_seeds(seeds: &[&str]) -> Result<Option<Mnemonic>, Error> {
     let mut mnemonics: Vec<Mnemonic> = Vec::with_capacity(seeds.len());
@@ -199,7 +213,7 @@ pub fn xor_seeds(seeds: &[&str]) -> Result<Option<Mnemonic>, Error> {
     Ok(mnemonics.into_iter().reduce(|a, b| a.xor(&b)))
 }
 
-/// Derives account extended public keys of a `seed` within an index range `[start, end)` with the derivation path of `version`.
+/// Derives account extended public keys of a `seed` with an index range `[start, end)` and the derivation path of `version`.
 /// Returns a tuple of the derivation path and its derived xpub.
 pub fn derive_xpubs_from_seed<S>(
     seed: S,
@@ -219,7 +233,7 @@ where
     Ok(xpubs)
 }
 
-/// Derives account extended private keys of a `seed` within an index range `[start, end)` with the derivation path of `version`.
+/// Derives account extended private keys of a `seed` with an index range `[start, end)` and the derivation path of `version`.
 /// Returns a tuple of the derivation path and its derived xprv.
 pub fn derive_xprvs_from_seed<S>(
     seed: S,

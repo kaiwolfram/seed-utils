@@ -10,7 +10,7 @@ name = "seed_utils"
 path = "src/lib.rs"
 
 [[bin]]
-name = "bin"
+name = "seed-utils"
 path = "src/bin/bin.rs"
 
 [dependencies]
