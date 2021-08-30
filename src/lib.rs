@@ -138,30 +138,32 @@ pub fn xor_seeds(seeds: &[&str]) -> Result<Option<Mnemonic>, String> {
 }
 
 /// Derives account extended public keys of a `seed` within an index range `[start, end)` with the derivation path of `version`.
+/// Returns a tuple of the derivation path and its derived xpub.
 pub fn derive_xpubs_from_seed<S>(
     seed: S,
     (start, end): (u32, u32),
     version: &Version,
-) -> Result<Vec<(u32, ExtendedPubKey)>, String>
+) -> Result<Vec<(DerivationPath, ExtendedPubKey)>, String>
 where
     S: AsRef<str>,
 {
     let xprvs = derive_xprvs_from_seed(seed, (start, end), version)?;
     let secp = Secp256k1::new();
     let xpubs = xprvs
-        .iter()
-        .map(|(i, xprv)| (*i, ExtendedPubKey::from_private(&secp, xprv)))
+        .into_iter()
+        .map(move |(i, xprv)| (i, ExtendedPubKey::from_private(&secp, &xprv)))
         .collect();
 
     Ok(xpubs)
 }
 
 /// Derives account extended private keys of a `seed` within an index range `[start, end)` with the derivation path of `version`.
+/// Returns a tuple of the derivation path and its derived xprv.
 pub fn derive_xprvs_from_seed<S>(
     seed: S,
     (start, mut end): (u32, u32),
     version: &Version,
-) -> Result<Vec<(u32, ExtendedPrivKey)>, String>
+) -> Result<Vec<(DerivationPath, ExtendedPrivKey)>, String>
 where
     S: AsRef<str>,
 {
@@ -171,7 +173,8 @@ where
     let secp = Secp256k1::new();
     let master = derive_root_xprv(seed)?;
     let path = derivation_path_from_version(version)?;
-    let mut result: Vec<(u32, ExtendedPrivKey)> = Vec::with_capacity(end as usize - start as usize);
+    let mut result: Vec<(DerivationPath, ExtendedPrivKey)> =
+        Vec::with_capacity(end as usize - start as usize);
 
     for i in start..end {
         let child = ChildNumber::from_hardened_idx(i).map_err(|e| e.to_string())?;
@@ -179,7 +182,7 @@ where
         let derived = master
             .derive_priv(&secp, &child_path)
             .map_err(|e| e.to_string())?;
-        result.push((i, derived));
+        result.push((child_path, derived));
     }
 
     Ok(result)
@@ -513,9 +516,9 @@ mod tests {
         let expected1 = "xprv9yG8MuRhkRHFPTa4tJbapc9G4QLgfZtqKJ4xsk4p3nsVYDVVERMa9xmiwRPKkpxb9WRJAWakwVja38WRH9FTHbaXcBxsqaT7sk8GzTsKneJ";
         let result = derive_xprvs_from_seed(seed, (start, end), &version).unwrap();
         assert_eq!(result.len(), 9);
-        assert_eq!(result.get(0).unwrap().0, 0);
+        assert_eq!(result.get(0).unwrap().0.to_string(), "m/44'/0'/0'");
         assert_eq!(result.get(0).unwrap().1.to_string(), expected0);
-        assert_eq!(result.get(1).unwrap().0, 1);
+        assert_eq!(result.get(1).unwrap().0.to_string(), "m/44'/0'/1'");
         assert_eq!(result.get(1).unwrap().1.to_string(), expected1);
 
         // yprv
@@ -524,9 +527,9 @@ mod tests {
         let expected1 = "xprv9yvxNCHWSBEQAqZpE9kUdUu7wbPUSvaC5YP43SyqxRLAHE5HBwe92omAxDMhfZrmV9m2vS46n9xk6JxBwAHq6GfwRto7VnshAwa2bmF33am";
         let result = derive_xprvs_from_seed(seed, (start, end), &version).unwrap();
         assert_eq!(result.len(), 9);
-        assert_eq!(result.get(0).unwrap().0, 0);
+        assert_eq!(result.get(0).unwrap().0.to_string(), "m/49'/0'/0'");
         assert_eq!(result.get(0).unwrap().1.to_string(), expected0);
-        assert_eq!(result.get(1).unwrap().0, 1);
+        assert_eq!(result.get(1).unwrap().0.to_string(), "m/49'/0'/1'");
         assert_eq!(result.get(1).unwrap().1.to_string(), expected1);
 
         // zprv
@@ -535,9 +538,9 @@ mod tests {
         let expected1 = "xprv9zFNLT61T56cdVw4WVXh5KZFupHAkDXCKTL8oy4WCfznHsafM3wYuCedYQN91v5WYr2LPr2HX3ZrdspypqnXnHjqvNY117FRnKJZfjM3qBF";
         let result = derive_xprvs_from_seed(seed, (start, end), &version).unwrap();
         assert_eq!(result.len(), 9);
-        assert_eq!(result.get(0).unwrap().0, 0);
+        assert_eq!(result.get(0).unwrap().0.to_string(), "m/84'/0'/0'");
         assert_eq!(result.get(0).unwrap().1.to_string(), expected0);
-        assert_eq!(result.get(1).unwrap().0, 1);
+        assert_eq!(result.get(1).unwrap().0.to_string(), "m/84'/0'/1'");
         assert_eq!(result.get(1).unwrap().1.to_string(), expected1);
     }
 
@@ -554,9 +557,9 @@ mod tests {
         let expected1 = "xpub6CFUmQxbanqYbweXzL8bBk5zcSBB52cggWzZg8URc8QUR1pdmxfphm6CngQSPYbHJopuBLZg7qnMceyfUWN7r5RXeYQKEvArPzkstv1LiBy";
         let result = derive_xpubs_from_seed(seed, (start, end), &version).unwrap();
         assert_eq!(result.len(), 9);
-        assert_eq!(result.get(0).unwrap().0, 0);
+        assert_eq!(result.get(0).unwrap().0.to_string(), "m/44'/0'/0'");
         assert_eq!(result.get(0).unwrap().1.to_string(), expected0);
-        assert_eq!(result.get(1).unwrap().0, 1);
+        assert_eq!(result.get(1).unwrap().0.to_string(), "m/44'/0'/1'");
         assert_eq!(result.get(1).unwrap().1.to_string(), expected1);
 
         // ypub
@@ -565,9 +568,9 @@ mod tests {
         let expected1 = "xpub6CvJmhpQGYnhPKeHLBHUzcqrVdDxrPJ3SmJeqqPTWks9A2QRjUxPac5eoV5TtfnhKAQQgKZE377ZmoJc9oe6PSTnP8ETdRTg4tmgARXSUNE";
         let result = derive_xpubs_from_seed(seed, (start, end), &version).unwrap();
         assert_eq!(result.len(), 9);
-        assert_eq!(result.get(0).unwrap().0, 0);
+        assert_eq!(result.get(0).unwrap().0.to_string(), "m/49'/0'/0'");
         assert_eq!(result.get(0).unwrap().1.to_string(), expected0);
-        assert_eq!(result.get(1).unwrap().0, 1);
+        assert_eq!(result.get(1).unwrap().0.to_string(), "m/49'/0'/1'");
         assert_eq!(result.get(1).unwrap().1.to_string(), expected1);
 
         // zpub
@@ -576,9 +579,9 @@ mod tests {
         let expected1 = "xpub6DEijxcuHSeuqz1XcX4hSTVzTr7f9gF3ggFjcMU7m1XmAfuotbFoSzy7PhzSPZA9xyYuAysaSrfjuF6caLTa81bAmreaHavVQakAuPKdYQj";
         let result = derive_xpubs_from_seed(seed, (start, end), &version).unwrap();
         assert_eq!(result.len(), 9);
-        assert_eq!(result.get(0).unwrap().0, 0);
+        assert_eq!(result.get(0).unwrap().0.to_string(), "m/84'/0'/0'");
         assert_eq!(result.get(0).unwrap().1.to_string(), expected0);
-        assert_eq!(result.get(1).unwrap().0, 1);
+        assert_eq!(result.get(1).unwrap().0.to_string(), "m/84'/0'/1'");
         assert_eq!(result.get(1).unwrap().1.to_string(), expected1);
     }
 

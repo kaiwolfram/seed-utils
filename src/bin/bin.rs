@@ -257,10 +257,10 @@ fn word_count_value(matches: &ArgMatches) -> Result<WordCount, String> {
 }
 
 /// Returns the `type` flag's value.
-fn type_value<'a>(matches: &'a ArgMatches) -> Result<Version, String> {
+fn type_value(matches: &ArgMatches) -> Result<Version, String> {
     let version = matches
         .value_of(TYPE_ARG)
-        .ok_or("type not set".to_string())?;
+        .ok_or_else(|| "type not set".to_string())?;
     Version::from_str(version).map_err(|_| format!("Version prefix [{}] is not supported", version))
 }
 
