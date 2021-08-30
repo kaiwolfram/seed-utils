@@ -1,18 +1,81 @@
 use std::str::FromStr;
 
-use bip85::bitcoin::secp256k1::Secp256k1;
-use bip85::bitcoin::Network;
-use bip85::{
-    bip39::Mnemonic,
-    bitcoin::util::bip32::{ChildNumber, DerivationPath, ExtendedPrivKey, ExtendedPubKey},
-};
+use bip85::bip39::{self, Mnemonic};
+use bitcoin::secp256k1::Secp256k1;
+use bitcoin::util::bip32::{self, ChildNumber, DerivationPath, ExtendedPrivKey, ExtendedPubKey};
+use bitcoin::Network;
 use rand::{thread_rng, Rng};
 use seed_xor::SeedXor;
+use std::fmt;
 use xyzpub::Version;
 
 const ENTROPY_BYTES_24_WORDS: usize = 32;
 const ENTROPY_BYTES_18_WORDS: usize = 24;
 const ENTROPY_BYTES_12_WORDS: usize = 16;
+
+/// All errors in this crate.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Error {
+    /// Word count is not 12, 18 or 24.
+    BadWordCount,
+    /// Wrong checksum or unknown words.
+    BadSeed,
+    /// Bip32 errors like bad child numbers, derivation paths, base58 encoding and length.
+    Bip32,
+    /// Bip85 error for invalid index or byte length.
+    Bip85,
+    /// Word count is higher than expected.
+    WordCountTooHigh,
+    /// Word count is lower than expected.
+    WordCountTooLow,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BadWordCount => write!(f, "Word count needs to be either 12, 18 or 24"),
+            Self::BadSeed => write!(
+                f,
+                "Seed is invalid because of a bad checksum or unknown words"
+            ),
+            Self::Bip32 => write!(
+                f,
+                "Bip32 error like bad child numbers, derivation paths, base58 encoding or length"
+            ),
+            Self::Bip85 => write!(f, "Bip85 error for invalid indexes or byte lengths."),
+            Self::WordCountTooHigh => {
+                write!(f, "Word count is higher than expected for the operation")
+            }
+            Self::WordCountTooLow => {
+                write!(f, "Word count is lower than expected for the operation")
+            }
+        }
+    }
+}
+
+impl From<bip39::Error> for Error {
+    fn from(e: bip39::Error) -> Self {
+        match e {
+            bip39::Error::BadWordCount(_) => Self::BadWordCount,
+            _ => Self::BadSeed,
+        }
+    }
+}
+
+impl From<bip32::Error> for Error {
+    fn from(_: bip32::Error) -> Self {
+        Self::Bip32
+    }
+}
+
+impl From<bip85::Error> for Error {
+    fn from(e: bip85::Error) -> Self {
+        match e {
+            bip85::Error::InvalidWordCount(_) => Self::BadWordCount,
+            _ => Self::Bip85,
+        }
+    }
+}
 
 /// Valid number of words in a mnemonic.
 #[derive(Debug, PartialEq, Eq)]
@@ -34,14 +97,14 @@ impl WordCount {
 }
 
 impl FromStr for WordCount {
-    type Err = String;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "12" => Ok(WordCount::Words12),
             "18" => Ok(WordCount::Words18),
             "24" => Ok(WordCount::Words24),
-            _ => Err("Word count can either be 12, 18 or 24".to_string()),
+            _ => Err(Error::BadWordCount),
         }
     }
 }
@@ -52,7 +115,7 @@ pub fn derive_child_seeds<S>(
     seed: S,
     (start, mut end): (u32, u32),
     word_count: &WordCount,
-) -> Result<Vec<(u32, Mnemonic)>, String>
+) -> Result<Vec<(u32, Mnemonic)>, Error>
 where
     S: AsRef<str>,
 {
@@ -65,8 +128,7 @@ where
     let mut result: Vec<(u32, Mnemonic)> = Vec::with_capacity(end as usize - start as usize);
 
     for i in start..end {
-        let mnemonic = bip85::to_mnemonic(&secp, &xprv, word_count.count() as u32, i)
-            .map_err(|e| e.to_string())?;
+        let mnemonic = bip85::to_mnemonic(&secp, &xprv, word_count.count() as u32, i)?;
         result.push((i, mnemonic));
     }
 
@@ -75,14 +137,14 @@ where
 
 /// Extends a `seed`'s number of words to the desired length `word_count` by enxtending its entropy.
 /// The returned new seed will start with the same words as `seed`.
-pub fn extend_seed<S>(seed: S, word_count: &WordCount) -> Result<Mnemonic, String>
+pub fn extend_seed<S>(seed: S, word_count: &WordCount) -> Result<Mnemonic, Error>
 where
     S: AsRef<str>,
 {
     // Check if seed can be extended
     let parsed_seed = parse_seed(seed)?;
     if parsed_seed.word_count() > word_count.count() as usize {
-        return Err("Seed is already longer than the desired length".to_string());
+        return Err(Error::WordCountTooHigh);
     }
 
     // Determine length of new entropy
@@ -100,18 +162,18 @@ where
         .take(new_entropy_count);
     entropy.extend(more_entropy);
 
-    Mnemonic::from_entropy(&entropy).map_err(|e| e.to_string())
+    Ok(Mnemonic::from_entropy(&entropy)?)
 }
 
 /// Truncates a `seed`'s number of words to `word_count` by truncating its entropy.
-pub fn truncate_seed<S>(seed: S, word_count: &WordCount) -> Result<Mnemonic, String>
+pub fn truncate_seed<S>(seed: S, word_count: &WordCount) -> Result<Mnemonic, Error>
 where
     S: AsRef<str>,
 {
     // Return early if seed has already the desired length
     let parsed_seed = parse_seed(seed)?;
     if parsed_seed.word_count() < word_count.count() as usize {
-        return Err("Seed is already shorter than the desired length".to_string());
+        return Err(Error::WordCountTooLow);
     }
 
     // Truncate entropy
@@ -122,15 +184,15 @@ where
         WordCount::Words24 => (),
     }
 
-    Mnemonic::from_entropy(&entropy).map_err(|e| e.to_string())
+    Ok(Mnemonic::from_entropy(&entropy)?)
 }
 
 /// XORs multiple seeds and returns the resulting seed or `None` if seeds are empty.
 /// Can fail if a seed is not a valid [bip39::Mnemonic].
-pub fn xor_seeds(seeds: &[&str]) -> Result<Option<Mnemonic>, String> {
+pub fn xor_seeds(seeds: &[&str]) -> Result<Option<Mnemonic>, Error> {
     let mut mnemonics: Vec<Mnemonic> = Vec::with_capacity(seeds.len());
     for seed in seeds {
-        let mnemonic = Mnemonic::from_str(seed).map_err(|e| e.to_string())?;
+        let mnemonic = Mnemonic::from_str(seed)?;
         mnemonics.push(mnemonic);
     }
 
@@ -143,7 +205,7 @@ pub fn derive_xpubs_from_seed<S>(
     seed: S,
     (start, end): (u32, u32),
     version: &Version,
-) -> Result<Vec<(DerivationPath, ExtendedPubKey)>, String>
+) -> Result<Vec<(DerivationPath, ExtendedPubKey)>, Error>
 where
     S: AsRef<str>,
 {
@@ -163,7 +225,7 @@ pub fn derive_xprvs_from_seed<S>(
     seed: S,
     (start, mut end): (u32, u32),
     version: &Version,
-) -> Result<Vec<(DerivationPath, ExtendedPrivKey)>, String>
+) -> Result<Vec<(DerivationPath, ExtendedPrivKey)>, Error>
 where
     S: AsRef<str>,
 {
@@ -177,11 +239,9 @@ where
         Vec::with_capacity(end as usize - start as usize);
 
     for i in start..end {
-        let child = ChildNumber::from_hardened_idx(i).map_err(|e| e.to_string())?;
+        let child = ChildNumber::from_hardened_idx(i)?;
         let child_path = path.child(child);
-        let derived = master
-            .derive_priv(&secp, &child_path)
-            .map_err(|e| e.to_string())?;
+        let derived = master.derive_priv(&secp, &child_path)?;
         result.push((child_path, derived));
     }
 
@@ -189,7 +249,7 @@ where
 }
 
 /// Derives the master public key of a `seed` at the bip32 root.
-pub fn derive_root_xpub<S>(seed: S) -> Result<ExtendedPubKey, String>
+pub fn derive_root_xpub<S>(seed: S) -> Result<ExtendedPubKey, Error>
 where
     S: AsRef<str>,
 {
@@ -200,48 +260,35 @@ where
 }
 
 /// Derives the master private key of a `seed` at the bip32 root.
-pub fn derive_root_xprv<S>(seed: S) -> Result<ExtendedPrivKey, String>
+pub fn derive_root_xprv<S>(seed: S) -> Result<ExtendedPrivKey, Error>
 where
     S: AsRef<str>,
 {
     let parsed_seed = parse_seed(seed)?;
     let entropy = parsed_seed.to_seed("");
-    let xprv =
-        ExtendedPrivKey::new_master(Network::Bitcoin, &entropy).map_err(|e| e.to_string())?;
+    let xprv = ExtendedPrivKey::new_master(Network::Bitcoin, &entropy)?;
 
     Ok(xprv)
 }
 
 /// Parses a `seed` string to a [bip39::Mnemonic].
-fn parse_seed<S>(seed: S) -> Result<Mnemonic, String>
+fn parse_seed<S>(seed: S) -> Result<Mnemonic, Error>
 where
     S: AsRef<str>,
 {
-    Mnemonic::from_str(seed.as_ref()).map_err(|e| e.to_string())
+    Ok(Mnemonic::from_str(seed.as_ref())?)
 }
 
 /// Returns the bip32 derivation path of a xpub/xprv version.
-fn derivation_path_from_version(version: &Version) -> Result<DerivationPath, String> {
+fn derivation_path_from_version(version: &Version) -> Result<DerivationPath, Error> {
     match version {
-        Version::Xpub | Version::Xprv => {
-            DerivationPath::from_str("m/44h/0h").map_err(|e| e.to_string())
-        }
-        Version::Ypub | Version::Yprv => {
-            DerivationPath::from_str("m/49h/0h").map_err(|e| e.to_string())
-        }
-        Version::Zpub | Version::Zprv => {
-            DerivationPath::from_str("m/84h/0h").map_err(|e| e.to_string())
-        }
-        Version::Tpub | Version::Tprv => {
-            DerivationPath::from_str("m/44h/1h").map_err(|e| e.to_string())
-        }
-        Version::Upub | Version::Uprv => {
-            DerivationPath::from_str("m/49h/1h").map_err(|e| e.to_string())
-        }
-        Version::Vpub | Version::Vprv => {
-            DerivationPath::from_str("m/84h/1h").map_err(|e| e.to_string())
-        }
-        _ => Err("Multisig versions have no derivation path".to_string()),
+        Version::Xpub | Version::Xprv => Ok(DerivationPath::from_str("m/44h/0h")?),
+        Version::Ypub | Version::Yprv => Ok(DerivationPath::from_str("m/49h/0h")?),
+        Version::Zpub | Version::Zprv => Ok(DerivationPath::from_str("m/84h/0h")?),
+        Version::Tpub | Version::Tprv => Ok(DerivationPath::from_str("m/44h/1h")?),
+        Version::Upub | Version::Uprv => Ok(DerivationPath::from_str("m/49h/1h")?),
+        Version::Vpub | Version::Vprv => Ok(DerivationPath::from_str("m/84h/1h")?),
+        _ => Err(Error::Bip32),
     }
 }
 

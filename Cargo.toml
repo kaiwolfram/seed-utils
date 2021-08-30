@@ -15,6 +15,7 @@ path = "src/bin/bin.rs"
 
 [dependencies]
 bip85 = "0.1.1"
+bitcoin = ">= 0.26" # >= 0.26.0 because that's what bip85 uses
 clap = "2.33.3"
 rand = "0.8.4"
 seed-xor = "0.2.0"

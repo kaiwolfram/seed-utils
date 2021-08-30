@@ -253,7 +253,7 @@ fn seed_values<'a>(matches: &'a ArgMatches) -> Result<Vec<&'a str>, String> {
 fn word_count_value(matches: &ArgMatches) -> Result<WordCount, String> {
     let count = matches.value_of(WORDS_ARG).ok_or("word count not set")?;
 
-    WordCount::from_str(count)
+    WordCount::from_str(count).map_err(|e| e.to_string())
 }
 
 /// Returns the `type` flag's value.
@@ -278,7 +278,8 @@ fn process_child_matches(matches: &ArgMatches) -> Result<(), String> {
     let word_count = word_count_value(matches)?;
 
     let derived =
-        seed_utils::derive_child_seeds(seed_str, (index, index + number as u32), &word_count)?;
+        seed_utils::derive_child_seeds(seed_str, (index, index + number as u32), &word_count)
+            .map_err(|e| e.to_string())?;
 
     for (i, mnemonic) in derived {
         println!("Derived seed at {}: {}", i, mnemonic);
@@ -293,7 +294,8 @@ fn process_extend_matches(matches: &ArgMatches) -> Result<(), String> {
     let seed_str = seed_value(matches)?;
     let word_count = word_count_value(matches)?;
 
-    let extended_seed = seed_utils::extend_seed(seed_str, &word_count)?;
+    let extended_seed =
+        seed_utils::extend_seed(seed_str, &word_count).map_err(|e| e.to_string())?;
     println!("Extended seed: {}", extended_seed);
 
     Ok(())
@@ -305,7 +307,8 @@ fn process_truncate_matches(matches: &ArgMatches) -> Result<(), String> {
     let seed_str = seed_value(matches)?;
     let word_count = word_count_value(matches)?;
 
-    let truncated_seed = seed_utils::truncate_seed(&seed_str, &word_count)?;
+    let truncated_seed =
+        seed_utils::truncate_seed(&seed_str, &word_count).map_err(|e| e.to_string())?;
     println!("Truncated seed: {}", truncated_seed);
 
     Ok(())
@@ -315,7 +318,7 @@ fn process_truncate_matches(matches: &ArgMatches) -> Result<(), String> {
 fn process_xor_matches(matches: &ArgMatches) -> Result<(), String> {
     let seeds = seed_values(matches)?;
 
-    if let Some(xor) = seed_utils::xor_seeds(&seeds)? {
+    if let Some(xor) = seed_utils::xor_seeds(&seeds).map_err(|e| e.to_string())? {
         println!("XORed seed: {}", xor);
     } else {
         println!("No seeds to XOR");
@@ -332,7 +335,9 @@ fn process_xpub_matches(matches: &ArgMatches) -> Result<(), String> {
 
     // Print root key if flag is present
     if is_root(matches) {
-        let master = seed_utils::derive_root_xpub(seed_str)?.versioned_string(&version)?;
+        let master = seed_utils::derive_root_xpub(seed_str)
+            .map_err(|e| e.to_string())?
+            .versioned_string(&version)?;
         println!("Root xpub: {}", master);
 
         return Ok(());
@@ -342,7 +347,8 @@ fn process_xpub_matches(matches: &ArgMatches) -> Result<(), String> {
     let index = index_value(matches)?;
     let number = number_value(matches)?;
     let derived =
-        seed_utils::derive_xpubs_from_seed(seed_str, (index, index + number as u32), &version)?;
+        seed_utils::derive_xpubs_from_seed(seed_str, (index, index + number as u32), &version)
+            .map_err(|e| e.to_string())?;
     for (i, xpub) in derived {
         println!(
             "Derived xpub at {}: {}",
@@ -362,7 +368,9 @@ fn process_xprv_matches(matches: &ArgMatches) -> Result<(), String> {
 
     // Print root key if flag is present
     if is_root(matches) {
-        let master = seed_utils::derive_root_xprv(seed_str)?.versioned_string(&version)?;
+        let master = seed_utils::derive_root_xprv(seed_str)
+            .map_err(|e| e.to_string())?
+            .versioned_string(&version)?;
         println!("Root xprv: {}", master);
 
         return Ok(());
@@ -372,7 +380,8 @@ fn process_xprv_matches(matches: &ArgMatches) -> Result<(), String> {
     let index = index_value(matches)?;
     let number = number_value(matches)?;
     let derived =
-        seed_utils::derive_xprvs_from_seed(seed_str, (index, index + number as u32), &version)?;
+        seed_utils::derive_xprvs_from_seed(seed_str, (index, index + number as u32), &version)
+            .map_err(|e| e.to_string())?;
     for (i, xpub) in derived {
         println!(
             "Derived xprv at {}: {}",
