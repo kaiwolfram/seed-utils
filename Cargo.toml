@@ -2,6 +2,14 @@
 name = "seed-utils"
 version = "0.1.0"
 edition = "2018"
+authors = ["KaiWitt <kaiwitt@protonmail.com>"]
+description = "Extend and truncate seeds, XOR them, derive child seeds and xpubs/xprvs at account or root level."
+readme = "README.md"
+repository = "https://github.com/KaiWitt/seed-utils"
+license = "MIT"
+keywords = ["bitcoin", "seed", "cli"]
+categories = ["cryptography::cryptocurrencies", "command-line-utilities"]
+publish = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -139,4 +139,7 @@ ARGS:
 
 
  ## Useful resources
- - bip39 and bip85 online tool: https://iancoleman.io/bip39/
+ - Online tool: https://iancoleman.io/bip39/
+ - bip32: https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
+ - bip39: https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
+ - bip85: https://github.com/bitcoin/bips/blob/master/bip-0085.mediawiki
