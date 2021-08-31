@@ -22,14 +22,13 @@ const TYPE_ARG: &str = "type";
 fn main() -> Result<(), String> {
     let matches = App::new("seed-utils")
         .version("0.1.0")
-        .about("CLI seed utilities.")
+        .about("CLI seed utilities")
         .subcommand(
             App::new(CHILD_SUB)
-                .about("Derives a child seed from a seed.")
+                .about("Derives a child seed from a seed")
                 .arg(
                     Arg::with_name(SEED_ARG)
                         .help("Seed to derive")
-                        .index(1)
                         .required(true),
                 )
                 .arg(
@@ -60,7 +59,7 @@ fn main() -> Result<(), String> {
         )
         .subcommand(
             App::new(EXTEND_SUB)
-                .about("Creates a new seed by extending the entropy of a 12 or 18 word seed.")
+                .about("Creates a new seed by extending the entropy of a 12 or 18 word seed")
                 .arg(
                     Arg::with_name(SEED_ARG)
                         .help("Seed to extend")
@@ -80,7 +79,7 @@ fn main() -> Result<(), String> {
         .subcommand(
             App::new(TRUNCATE_SUB)
                 .about("Creates new seeds by shortening the entropy of another. 
-                The new seed begins with the same words as the longer one, only the last word is different to satisfy its checksum.")
+                The new seed begins with the same words as the longer one, only the last word is different to satisfy its checksum")
                 .arg(
                     Arg::with_name(SEED_ARG)
                         .help("Seed to truncate")
@@ -99,7 +98,7 @@ fn main() -> Result<(), String> {
         )
         .subcommand(
             App::new(XOR_SUB)
-            .about("Does a XOR of multiple seeds.")
+            .about("Does a XOR of multiple seeds")
             .arg(
                 Arg::with_name(SEED_ARG)
                     .help("Seeds to xor")
@@ -110,7 +109,7 @@ fn main() -> Result<(), String> {
         )
         .subcommand(
             App::new(XPUB_SUB)
-                .about("Derives account or root xpubs from a seed.")
+                .about("Derives account or root xpubs from a seed")
                 .arg(
                     Arg::with_name(SEED_ARG)
                         .help("Seed to derive xpubs from")
@@ -153,7 +152,7 @@ fn main() -> Result<(), String> {
         )
         .subcommand(
             App::new(XPRV_SUB)
-                .about("Derives account or root xprvs from a seed.")
+                .about("Derives account or root xprvs from a seed")
                 .arg(
                     Arg::with_name(SEED_ARG)
                         .help("Seed to derive xprvs from")
@@ -201,12 +200,12 @@ fn main() -> Result<(), String> {
 /// Processes command line arguments.
 fn process_matches(matches: &ArgMatches) -> Result<(), String> {
     match matches.subcommand_name() {
-        Some(CHILD_SUB) => process_child_matches(matches)?,
-        Some(EXTEND_SUB) => process_extend_matches(matches)?,
-        Some(TRUNCATE_SUB) => process_truncate_matches(matches)?,
-        Some(XOR_SUB) => process_xor_matches(matches)?,
-        Some(XPUB_SUB) => process_xpub_matches(matches)?,
-        Some(XPRV_SUB) => process_xprv_matches(matches)?,
+        Some(CHILD_SUB) => process_child_matches(matches.subcommand_matches(CHILD_SUB))?,
+        Some(EXTEND_SUB) => process_extend_matches(matches.subcommand_matches(EXTEND_SUB))?,
+        Some(TRUNCATE_SUB) => process_truncate_matches(matches.subcommand_matches(TRUNCATE_SUB))?,
+        Some(XOR_SUB) => process_xor_matches(matches.subcommand_matches(XOR_SUB))?,
+        Some(XPUB_SUB) => process_xpub_matches(matches.subcommand_matches(XPUB_SUB))?,
+        Some(XPRV_SUB) => process_xprv_matches(matches.subcommand_matches(XPRV_SUB))?,
         Some(unknown) => return Err(format!("Subcommand [{}] does not exist", unknown)),
         None => return Err("No subcommand was used. Try using --help for guidance.".to_string()),
     }
@@ -215,8 +214,9 @@ fn process_matches(matches: &ArgMatches) -> Result<(), String> {
 }
 
 /// Returns the `index` flag's value.
-fn index_value(matches: &ArgMatches) -> Result<u32, String> {
+fn index_value(matches: Option<&ArgMatches>) -> Result<u32, String> {
     matches
+        .unwrap()
         .value_of(INDEX_ARG)
         .ok_or_else(|| "index not set".to_string())?
         .parse::<u32>()
@@ -224,8 +224,9 @@ fn index_value(matches: &ArgMatches) -> Result<u32, String> {
 }
 
 /// Returns the `number` flag's value.
-fn number_value(matches: &ArgMatches) -> Result<u8, String> {
+fn number_value(matches: Option<&ArgMatches>) -> Result<u8, String> {
     matches
+        .unwrap()
         .value_of(NUMBER_ARG)
         .ok_or_else(|| "number not set".to_string())?
         .parse::<u8>()
@@ -233,15 +234,17 @@ fn number_value(matches: &ArgMatches) -> Result<u8, String> {
 }
 
 /// Returns the `seed` flag's value.
-fn seed_value<'a>(matches: &'a ArgMatches) -> Result<&'a str, String> {
+fn seed_value<'a>(matches: Option<&'a ArgMatches>) -> Result<&'a str, String> {
     matches
+        .unwrap()
         .value_of(SEED_ARG)
         .ok_or_else(|| "seed not set".to_string())
 }
 
 /// Returns the `seed` flag's values as a list of seeds.
-fn seed_values<'a>(matches: &'a ArgMatches) -> Result<Vec<&'a str>, String> {
+fn seed_values<'a>(matches: Option<&'a ArgMatches>) -> Result<Vec<&'a str>, String> {
     Ok(matches
+        .unwrap()
         .values_of(SEED_ARG)
         .ok_or_else(|| "seeds not set".to_string())?
         .into_iter()
@@ -249,27 +252,31 @@ fn seed_values<'a>(matches: &'a ArgMatches) -> Result<Vec<&'a str>, String> {
 }
 
 /// Returns the `words` flag's value.
-fn word_count_value(matches: &ArgMatches) -> Result<WordCount, String> {
-    let count = matches.value_of(WORDS_ARG).ok_or("word count not set")?;
+fn word_count_value(matches: Option<&ArgMatches>) -> Result<WordCount, String> {
+    let count = matches
+        .unwrap()
+        .value_of(WORDS_ARG)
+        .ok_or("word count not set")?;
 
     WordCount::from_str(count).map_err(|e| e.to_string())
 }
 
 /// Returns the `type` flag's value.
-fn type_value(matches: &ArgMatches) -> Result<Version, String> {
+fn type_value(matches: Option<&ArgMatches>) -> Result<Version, String> {
     let version = matches
+        .unwrap()
         .value_of(TYPE_ARG)
         .ok_or_else(|| "type not set".to_string())?;
     Version::from_str(version).map_err(|_| format!("Version prefix [{}] is not supported", version))
 }
 
 /// Returns the `root` flag.
-fn is_root(matches: &ArgMatches) -> bool {
-    matches.is_present(ROOT_ARG)
+fn is_root(matches: Option<&ArgMatches>) -> bool {
+    matches.unwrap().is_present(ROOT_ARG)
 }
 
 /// Processes the `child` subcommand.
-fn process_child_matches(matches: &ArgMatches) -> Result<(), String> {
+fn process_child_matches(matches: Option<&ArgMatches>) -> Result<(), String> {
     // Return early because every field is either required or has a default value
     let seed_str = seed_value(matches)?;
     let index = index_value(matches)?;
@@ -281,14 +288,14 @@ fn process_child_matches(matches: &ArgMatches) -> Result<(), String> {
             .map_err(|e| e.to_string())?;
 
     for (i, mnemonic) in derived {
-        println!("Derived seed at {}: {}", i, mnemonic);
+        println!("Index {}: {}", i, mnemonic);
     }
 
     Ok(())
 }
 
 /// Processes the `extend` subcommand.
-fn process_extend_matches(matches: &ArgMatches) -> Result<(), String> {
+fn process_extend_matches(matches: Option<&ArgMatches>) -> Result<(), String> {
     // Return early because every field is either required or has a default value
     let seed_str = seed_value(matches)?;
     let word_count = word_count_value(matches)?;
@@ -301,7 +308,7 @@ fn process_extend_matches(matches: &ArgMatches) -> Result<(), String> {
 }
 
 /// Processes the `truncate` subcommand.
-fn process_truncate_matches(matches: &ArgMatches) -> Result<(), String> {
+fn process_truncate_matches(matches: Option<&ArgMatches>) -> Result<(), String> {
     // Return early because seed is required and word count has a default
     let seed_str = seed_value(matches)?;
     let word_count = word_count_value(matches)?;
@@ -314,7 +321,7 @@ fn process_truncate_matches(matches: &ArgMatches) -> Result<(), String> {
 }
 
 /// Processes the `xor` subcommand.
-fn process_xor_matches(matches: &ArgMatches) -> Result<(), String> {
+fn process_xor_matches(matches: Option<&ArgMatches>) -> Result<(), String> {
     let seeds = seed_values(matches)?;
 
     if let Some(xor) = seed_utils::xor_seeds(&seeds).map_err(|e| e.to_string())? {
@@ -327,7 +334,7 @@ fn process_xor_matches(matches: &ArgMatches) -> Result<(), String> {
 }
 
 /// Processes the `xpub` subcommand.
-fn process_xpub_matches(matches: &ArgMatches) -> Result<(), String> {
+fn process_xpub_matches(matches: Option<&ArgMatches>) -> Result<(), String> {
     // Return early because every field is either required or has a default value
     let seed_str = seed_value(matches)?;
     let version = type_value(matches)?;
@@ -360,7 +367,7 @@ fn process_xpub_matches(matches: &ArgMatches) -> Result<(), String> {
 }
 
 /// Processes the `xprv` subcommand.
-fn process_xprv_matches(matches: &ArgMatches) -> Result<(), String> {
+fn process_xprv_matches(matches: Option<&ArgMatches>) -> Result<(), String> {
     // Return early because every field is either required or has a default value
     let seed_str = seed_value(matches)?;
     let version = type_value(matches)?;

@@ -55,10 +55,16 @@ impl fmt::Display for Error {
             ),
             Self::Bip85 => write!(f, "Bip85 error for invalid indexes or byte lengths."),
             Self::WordCountTooHigh => {
-                write!(f, "Word count is higher than expected for the operation")
+                write!(
+                    f,
+                    "Word count of seed is higher than expected for the operation"
+                )
             }
             Self::WordCountTooLow => {
-                write!(f, "Word count is lower than expected for the operation")
+                write!(
+                    f,
+                    "Word count of seed is lower than expected for the operation"
+                )
             }
         }
     }

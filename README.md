@@ -7,7 +7,7 @@ Extend and truncate seeds, XOR them, derive child seeds and xpubs/xprvs at accou
 
 ```
 seed-utils 0.1.0
-CLI seed utilities.
+CLI seed utilities
 
 USAGE:
     seed-utils [SUBCOMMAND]
@@ -17,19 +17,19 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    child       Derives a child seed from a seed.
+    child       Derives a child seed from a seed
     extend      Creates a new seed by extending the entropy of a 12 or 18 word seed
     help        Prints this message or the help of the given subcommand(s)
     truncate    Creates new seeds by shortening the entropy of another.
                                 The new seed begins with the same words as the longer one, only the last word is
-                different to satisfy its checksum.
-    xor         Does a XOR of multiple seeds.
-    xprv        Derives account xprvs from a seed.
-    xpub        Derives account xpubs from a seed.
+                different to satisfy its checksum
+    xor         Does a XOR of multiple seeds
+    xprv        Derives account xprvs from a seed
+    xpub        Derives account xpubs from a seed
 ```
 ### `child` subcommand:
 ```
-Derives a child seed from a seed.
+Derives a child seed from a seed
 
 USAGE:
     seed-utils child [OPTIONS] <seed>
@@ -48,7 +48,7 @@ ARGS:
 ```
 ### `extend` subcommand:
 ```
-Creates a new seed by extending the entropy of a 12 or 18 word seed.
+Creates a new seed by extending the entropy of a 12 or 18 word seed
 
 USAGE:
     seed-utils extend [OPTIONS] <seed>
@@ -67,7 +67,7 @@ ARGS:
 ```
 Creates new seeds by shortening the entropy of another.
                 The new seed begins with the same words as the longer one, only the last word is different to satisfy
-its checksum.
+its checksum
 
 USAGE:
     seed-utils truncate [OPTIONS] <seed>
@@ -84,7 +84,7 @@ ARGS:
 ```
 ### `xor` subcommand:
 ```
-Does a XOR of multiple seeds.
+Does a XOR of multiple seeds
 
 USAGE:
     seed-utils xor <seed>...
@@ -98,7 +98,7 @@ ARGS:
 ```
 ### `xprv` subcommand:
 ```
-Derives account or root xprvs from a seed.
+Derives account or root xprvs from a seed
 
 USAGE:
     seed-utils xprv [FLAGS] [OPTIONS] <seed>
@@ -118,7 +118,7 @@ ARGS:
 ```
 ### `xpub` subcommand:
 ```
-Derives account or root xpubs from a seed.
+Derives account or root xpubs from a seed
 
 USAGE:
     seed-utils xpub [FLAGS] [OPTIONS] <seed>
