@@ -1,0 +1,30 @@
+[package]
+name = "seed-utils"
+version = "0.1.0"
+edition = "2018"
+authors = ["KaiWitt <kaiwitt@protonmail.com>"]
+description = "Extend and truncate seeds, XOR them, derive child seeds and xpubs/xprvs at account or root level."
+readme = "README.md"
+repository = "https://github.com/KaiWitt/seed-utils"
+license = "MIT"
+keywords = ["bitcoin", "seed", "cli"]
+categories = ["cryptography::cryptocurrencies", "command-line-utilities"]
+publish = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "seed_utils"
+path = "src/lib.rs"
+
+[[bin]]
+name = "seed-utils"
+path = "src/bin/bin.rs"
+
+[dependencies]
+bip85 = "0.1.1"
+bitcoin = ">= 0.26" # >= 0.26.0 because that's what bip85 uses
+clap = "2.33.3"
+rand = "0.8.4"
+seed-xor = "0.2.0"
+xyzpub = "0.2.1"
